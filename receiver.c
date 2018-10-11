@@ -10,7 +10,6 @@ int main(int argc, char *argv[])
 	struct sockaddr_in client;
 	FILE *outputFile;
 	socklen_t socklen;
-	
 	/*----- Checking arguments -----*/
 	if (argc != 3){
 		fprintf(stderr, "usage: receiver <port> <filename>\n");

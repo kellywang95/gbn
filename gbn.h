@@ -1,6 +1,8 @@
 #ifndef _gbn_h
 #define _gbn_h
+#define h_addr h_addr_list[0]
 
+#include<arpa/inet.h>
 #include<sys/types.h>
 #include<sys/socket.h>
 #include<sys/ioctl.h>
@@ -31,7 +33,7 @@ extern int errno;
 #define SYN      0        /* Opens a connection                          */
 #define SYNACK   1        /* Acknowledgement of the SYN packet           */
 #define DATA     2        /* Data packets                                */
-#define DATAACK  3        /* Acknowledgement of the DATA packet          */
+#define DATAACK  3       /* Acknowledgement of the DATA packet          */
 #define FIN      4        /* Ends a connection                           */
 #define FINACK   5        /* Acknowledgement of the FIN packet           */
 #define RST      6        /* Reset packet used to reject new connections */
@@ -47,18 +49,18 @@ typedef struct {
 
 typedef struct state_t{
 	int mode, state, timed_out;
-	struct sockaddr *senderServerAddr, *receiverServerAddr;
+	struct sockaddr senderServerAddr, receiverServerAddr;
 	socklen_t senderSocklen, receiverSocklen;
 	uint8_t send_seqnum, rec_seqnum;
 } state_t;
 
 enum {
 	CLOSED=0,
-	SYN_SENT,
-	SYN_RCVD,
-	ESTABLISHED,
-	FIN_SENT,
-	FIN_RCVD
+	SYN_SENT=1,
+	SYN_RCVD=2,
+	ESTABLISHED=3,
+	FIN_SENT=4,
+	FIN_RCVD=5
 };
 
 enum {
