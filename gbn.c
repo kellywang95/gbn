@@ -168,7 +168,7 @@ RECV:
 		s.rec_seqnum ++;
 		return sender_packet_size;
 	}
-	printf("%d\n", sender_packet->type);
+	printf("sender_packet->type: %d\n", sender_packet->type);
 	printf("after check packet\n");
 
 	/* if a connection teardown request is received, reply with FINACK header */
@@ -179,8 +179,7 @@ RECV:
 		s.state = FIN_RCVD;
 		return 0;
 	}
-
-	return(-1);
+	goto RECV;
 }
 
 
