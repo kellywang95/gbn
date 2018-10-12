@@ -93,7 +93,7 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 	while (i < numPackets) {
 		int j = 0;
 
-		while ( i < numPackets && j < s.mode) {
+		while ( i < numPackets) {
 			printf("sending packet %i\n", i);
 			if (attempts[i] >= MAX_ATTEMPT) {
 				s.state = CLOSED;
