@@ -62,7 +62,7 @@ int is_timeout() {
  * 2.expected type
  */
 int check_packetType(gbnhdr *packet, int type) {
-	if (packet->type != type) return -1;
+	if (packet.type != type) return -1;
 	return 0;
 }
 
@@ -79,9 +79,9 @@ int check_seqnum(gbnhdr *packet, int expected) {
 ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 	/* split data into multiple packets */
 	numPackets = (int) len / DATALEN;
-	printf("in send and ready to send %i packets\n", numPackets);
 	int lastPacketSize = len % DATALEN;
 	if (len % DATALEN != 0) numPackets ++;
+	printf("in send and ready to send %i packets\n", numPackets);
 	int att[numPackets];
 	memset(att, 0, numPackets * sizeof(int));
 	attempts = att;
