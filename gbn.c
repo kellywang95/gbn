@@ -136,6 +136,7 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
 	/* receiver receive packet from sender and if valid, send DATAACK */
 	printf ("in receive\n");
 	gbnhdr * sender_packet = malloc(sizeof(gbnhdr));
+RECV:
 	recvfrom(sockfd, (char *)sender_packet, sizeof(gbnhdr), 0, &s.receiverServerAddr, &s.receiverSocklen);
 	printf("after recvfrom\n");
 
@@ -144,12 +145,12 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
 		/* check data validity */
 		if (check_seqnum(sender_packet, s.rec_seqnum) == -1) {
 			 printf("received an unexpected seqnum, discarding data...\n");
-			return -1;
+			goto RECV;
 		}
 		int sender_packet_size = sender_packet->datalen;
 		if (checksum(buf, sender_packet_size) == -1) {
 			printf("data is corrupt\n");
-			return -1;
+			goto RECV;
 		}
 
 		memcpy(buf, sender_packet->data, sender_packet_size);
@@ -159,7 +160,7 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
 
 		if (sendto(sockfd, rec_header, sizeof(gbnhdr), 0, &s.receiverServerAddr, s.receiverSocklen) == -1) {
 			printf ("error sending in gbn_recv\n");
-			return -1;
+			goto RECV;
 		}
 		printf("sent data with seqnum %i\n", s.rec_seqnum);
 		free(rec_header);
