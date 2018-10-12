@@ -130,6 +130,36 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 		while (unACK > 0) {
 			printf("for db9\n");
 			/* receive ack header */
+			gbnhdr *rec_header = malloc(sizeof(gbnhdr));
+CONTINUERECV:
+			if (maybe_recvfrom(sockfd, (char *)&rec_header, sizeof(rec_header), 0, s.receiverServerAddr, &s.receiverSocklen) == -1) {
+				goto CONTINUERECV;
+			}
+			printf("for db4\n");
+			/* verify there is no timeout, verify type = dataack and seqnum are expected */
+			if (is_timeout() == -1 && check_packetType(rec_header, DATAACK) == 0
+			&& check_seqnum(rec_header, s.rec_seqnum) == 0) {
+				printf("for db8\n");
+				printf("received successfully\n");
+				s.mode = s.mode == SLOW ? MODERATE : FAST;
+				seqOnTheFly[s.rec_seqnum] = 0;
+				attempts[s.rec_seqnum++] = 0;
+				unACK --;
+				alarm(TIMEOUT); 
+			} else {
+				printf("for db5\n");
+				i -= s.send_seqnum - s.rec_seqnum;
+				s.send_seqnum = s.rec_seqnum;
+				s.mode = SLOW;
+				free(rec_header);
+				printf("for db6\n");
+				attempts[i] ++;
+				printf("for db7\n");
+				break;
+			}
+			free(rec_header);
+			/*TODO delete*/
+			unACK = 0;
 		}
 	}
 	free(slicedBuf);
