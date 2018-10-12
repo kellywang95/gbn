@@ -128,6 +128,7 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 
 		int unACK = j;
 		while (unACK > 0) {
+			printf("for db9\n");
 			/* receive ack header */
 			gbnhdr *rec_header = malloc(sizeof(gbnhdr));
 CONTINUERECV:
