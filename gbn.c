@@ -62,7 +62,7 @@ int is_timeout() {
  * 2.expected type
  */
 int check_packetType(gbnhdr *packet, int type) {
-	if (packet.type != type) return -1;
+	if (packet->type != type) return -1;
 	return 0;
 }
 
