@@ -249,7 +249,7 @@ int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
 			send_header = make_packet(SYNACK, 0, 0, NULL, 0);
 			sendto(sockfd, send_header, sizeof(send_header), 0, server, s.senderSocklen);
 			return 0;
-		} elif true {
+		} else if (1) {
 			/* TODO if receive data, turn to rcvd mode */
 		}
 		attempt ++;
