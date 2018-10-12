@@ -10,7 +10,6 @@ int attempt = 0;
 int* seqOnTheFly;
 int numPackets;
 
-
 uint16_t checksum(uint16_t *buf, int nwords)
 {
 	uint32_t sum;
@@ -168,7 +167,7 @@ RECV:
 	}
 
 	/* if a data packet is received, check packet to verify its type */
-	if (check_packetType(sender_packet, DATA) == 0){
+	if (sender_packet->type == DATA) {
 		alarm(TIMEOUT);
 		/* check data validity */
 		if (check_seqnum(sender_packet, s.rec_seqnum) == -1) {
@@ -176,7 +175,7 @@ RECV:
 			goto RECV;
 		}
 		int sender_packet_size = sender_packet->datalen;
-		if (checksum(buf, sender_packet_size) == -1) {
+		if (checksum((uint16_t *)&sender_packet->data, (1 + sender_packet_size) / 2) == -1) {
 			printf("data is corrupt\n");
 			goto RECV;
 		}
@@ -194,6 +193,7 @@ RECV:
 		/* if successfully send ACK, expected next rec_seqnum ++ */
 		s.rec_seqnum ++;
 		return sender_packet_size;
+	/* if a connection teardown request is received, reply with FINACK header */
 	} else if (check_packetType(sender_packet, FIN) == 0) {
 		printf("reply with FINACK header \n");
 		gbnhdr *rec_header = malloc(sizeof(gbnhdr));
@@ -233,6 +233,7 @@ int gbn_close(int sockfd){
 			if (sendto(sockfd, send_header, sizeof(gbnhdr), 0, s.senderServerAddr, s.senderSocklen) == -1) return -1;
 			if (sendto(sockfd, send_header, sizeof(gbnhdr), 0, s.senderServerAddr, s.senderSocklen) == -1) return -1;
 			s.state = FIN_SENT;
+
 		}
 		else if (s.state == FIN_SENT) {
 			gbnhdr *finack_packet = malloc(sizeof(gbnhdr));
@@ -294,12 +295,11 @@ int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
 		s.senderServerAddr = (struct sockaddr *)server;
 		s.receiverSocklen = socklen;
 		s.state = SYN_SENT;
-		printf("sender sent syn header\n");
 		alarm(TIMEOUT);
 		/* waiting for receiving SYNACK */
 		gbnhdr *rec_header = malloc(sizeof(gbnhdr));
 		if (maybe_recvfrom(sockfd, (char *)rec_header, sizeof(rec_header), 0, s.receiverServerAddr, &s.receiverSocklen) == -1) {
-			printf("sender error in maybe_recvfrom syn ack\n");
+			printf("sender error in recvfrom syn ack\n");
 			attempt ++;
 			continue;
 		}
@@ -321,8 +321,8 @@ int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
 int gbn_listen(int sockfd, int backlog){
 	printf("in listen\n");
 	while(0) {
-		/* receiver receive from (listen to) header of the request to connect */
 		gbnhdr *send_header = malloc(sizeof(gbnhdr));
+		/* receiver receive from (listen to) header of the request to connect */
 		if (maybe_recvfrom(sockfd, (char *)send_header, sizeof(gbnhdr), 0, s.receiverServerAddr, &s.receiverSocklen) == -1) {
 			printf("error rec syn from sender\n");
 			return -1;
@@ -339,11 +339,11 @@ int gbn_listen(int sockfd, int backlog){
 }
 
 int gbn_bind(int sockfd, const struct sockaddr *server, socklen_t socklen){
-    /* pointer to local struct on receiver server where sender address is to be stored */
-    printf("in bind\n");
-    s.receiverServerAddr = (struct sockaddr *)server;
-    s.receiverSocklen = socklen;
-    return bind(sockfd, server, socklen);
+	/* pointer to local struct on receiver server where sender address is to be stored */
+	printf("in bind\n");
+	s.receiverServerAddr = (struct sockaddr *)server;
+	s.receiverSocklen = socklen;
+	return bind(sockfd, server, socklen);
 }	
 
 int gbn_socket(int domain, int type, int protocol){
@@ -352,7 +352,7 @@ int gbn_socket(int domain, int type, int protocol){
 	printf("in gbn_socket\n");
 	srand((unsigned)time(0));
 
-    return socket(domain, type, protocol);
+	return socket(domain, type, protocol);
 }
 
 int gbn_accept(int sockfd, struct sockaddr *client, socklen_t *socklen){
@@ -459,5 +459,5 @@ ssize_t maybe_recvfrom(int  s, char *buf, size_t len, int flags, struct sockaddr
 		return retval;
 	}
 	/*----- Packet lost -----*/
-	return(len);  /* Simulate a success */
+	return (len);  /* Simulate a success */
 }
