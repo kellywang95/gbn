@@ -49,7 +49,7 @@ typedef struct {
 
 typedef struct state_t{
 	int mode, state, timed_out;
-	struct sockaddr* senderServerAddr, receiverServerAddr;
+	struct sockaddr* senderServerAddr, *receiverServerAddr;
 	socklen_t senderSocklen, receiverSocklen;
 	uint8_t send_seqnum, rec_seqnum;
 } state_t;
