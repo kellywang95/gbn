@@ -172,8 +172,9 @@ RECV:
 		/* if successfully send ACK, expected next rec_seqnum ++ */
 		s.rec_seqnum ++;
 		return sender_packet_size;
+	} else {
+		goto RECV;
 	}
-	printf("%d\n", sender_packet->type);
 	printf("after check packet\n");
 
 	/* if a connection teardown request is received, reply with FINACK header */
