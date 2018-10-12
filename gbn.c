@@ -238,7 +238,7 @@ int gbn_close(int sockfd){
 			if (maybe_recvfrom(sockfd, (char *)finack_packet, sizeof(gbnhdr), 0, s.receiverServerAddr, &s.receiverSocklen) == -1) {
 				continue;
 			}
-			if (finack_packet.type == FINACK) {
+			if (finack_packet->type == FINACK) {
 				printf("client close.\n");
 				return 0;
 			}
