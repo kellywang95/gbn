@@ -201,18 +201,14 @@ RECV:
 		/* if successfully send ACK, expected next rec_seqnum ++ */
 		s.rec_seqnum ++;
 		return sender_packet_size;
-	} else {
-		goto RECV;
-	}
-	printf("after check packet\n");
-
-	/* if a connection teardown request is received, reply with FINACK header */
-	if (check_packetType(sender_packet, FIN) == 0) {
+	} else if (check_packetType(sender_packet, FIN) == 0) {
 		printf("reply with FINACK header \n");
 		gbnhdr *rec_header = make_packet(FINACK, 0, 0, NULL, 0);
 		if (sendto(sockfd, rec_header, sizeof(gbnhdr), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
 		s.state = FIN_RCVD;
 		return 0;
+	} else {
+		goto RECV;
 	}
 
 	return(-1);
