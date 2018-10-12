@@ -144,16 +144,16 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
 		/* check data validity */
 		if (check_seqnum(sender_packet, s.rec_seqnum) == -1) {
 			 printf("received an unexpected seqnum, discarding data...\n");
-			return 0;
+			return -1;
 		}
 		int sender_packet_size = sender_packet->datalen;
 		if (checksum(buf, sender_packet_size) == -1) {
 			printf("data is corrupt\n");
-			return 0;
+			return -1;
 		}
 
 		memcpy(buf, sender_packet->data, sender_packet_size);
-		printf("%s\n", sender_packet->data);
+		printf("sender_packet->data: %s\n", sender_packet->data);
 		/* receiver reply with DATAACK header with seqnum received */
 		gbnhdr *rec_header = make_packet(DATAACK, s.rec_seqnum, 0, NULL, 0);
 
