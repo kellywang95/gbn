@@ -145,11 +145,14 @@ CONTINUERECV:
 				unACK --;
 				alarm(TIMEOUT); 
 			} else {
+				printf("for db5\n");
 				i -= s.send_seqnum - s.rec_seqnum;
 				s.send_seqnum = s.rec_seqnum;
 				s.mode = SLOW;
 				free(rec_header);
+				printf("for db5\n");
 				attempts[i] ++;
+				printf("for db7\n");
 				break;
 			}
 			free(rec_header);
