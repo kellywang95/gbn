@@ -405,13 +405,15 @@ int gbn_accept(int sockfd, struct sockaddr *client, socklen_t *socklen){
 			printf("receiver send synack failed\n");
 			continue;
 		}
-		printf("receiver sent synack header\n");
+		s.senderServerAddr = tmp_sock;
+		s.senderSocklen = *tmp_sock_len;
 		alarm(TIMEOUT);
 		/* waiting for receiving SYNACK */
 		gbnhdr *send_header = malloc(sizeof(gbnhdr));
-		if (maybe_recvfrom(sockfd, (char *)send_header, sizeof(send_header), 0, s.senderServerAddr, &s.senderSocklen) == -1) {
+		if (maybe_recvfrom(sockfd, (char *)send_header, sizeof(send_header), 0, tmp_sock, tmp_sock_len) == -1) {
 			printf("receiver error in maybe_recvfrom syn ack\n");
-			attempt ++;		
+			attempt ++;
+			continue;
 		}
 		/* check for timeout, check if header type is SYNACK */
 		if (check_packetType(send_header, SYNACK) == 0) {
@@ -421,11 +423,12 @@ int gbn_accept(int sockfd, struct sockaddr *client, socklen_t *socklen){
 			free(rec_header);
 			return sockfd;
 		}
+		printf("received non-synack\n");
+		printf("recived type: %d\n",send_header.type);
 		attempt ++;
 	}
 
 	free(rec_header);
-
 	return -1;
 }
 
