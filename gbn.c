@@ -112,54 +112,42 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 			gbnhdr *packet = malloc(sizeof(gbnhdr));
 			make_packet(packet, DATA, s.send_seqnum, -1, slicedBuf, currSize);
 			if (attempts[i] < MAX_ATTEMPT && sendto(sockfd, packet, sizeof(*packet), flags, s.senderServerAddr, s.senderSocklen) == -1) {
-				printf("sending packet %i\n error", i);
 				attempts[i] ++;
 				free(packet);
 				continue;
 			}
-			printf("sending packet %i success\n", i);
 			seqOnTheFly[s.send_seqnum] = 1;
-			printf("for db1\n");
 			if (j == 0) alarm(TIMEOUT);
 			s.send_seqnum ++;
 			j++;
 			i++;
 			free(packet);
-			printf("for db2\n");
 		}
-		printf("for db3\n");
 
 		int unACK = j;
 		while (unACK > 0) {
-			printf("for db9\n");
 			/* receive ack header */
 			gbnhdr *rec_header = malloc(sizeof(gbnhdr));
-			maybe_recvfrom(sockfd, (char *)rec_header, sizeof(rec_header), 0, s.receiverServerAddr, &s.receiverSocklen);
-			printf("for db4\n");
+			struct sockaddr tmp_sock;
+			socklen_t tmp_sock_len;
+			maybe_recvfrom(sockfd, (char *)rec_header, sizeof(rec_header), 0, &tmp_sock, &tmp_sock_len);
 			/* verify there is no timeout, verify type = dataack and seqnum are expected */
-			if (is_timeout() == -1 && check_packetType(rec_header, DATAACK) == 0
-			&& check_seqnum(rec_header, s.rec_seqnum) == 0) {
-				printf("for db8\n");
-				printf("received successfully\n");
+			if (check_packetType(rec_header, DATAACK) == 0 && check_seqnum(rec_header, s.rec_seqnum) == 0) {
+				printf("received dataack for seq %d successfully\n", s.rec_seqnum);
 				s.mode = s.mode == SLOW ? MODERATE : FAST;
 				seqOnTheFly[s.rec_seqnum] = 0;
 				attempts[s.rec_seqnum++] = 0;
 				unACK --;
 				alarm(TIMEOUT); 
 			} else {
-				printf("for db5\n");
 				i -= s.send_seqnum - s.rec_seqnum;
 				s.send_seqnum = s.rec_seqnum;
 				s.mode = SLOW;
 				free(rec_header);
-				printf("for db6\n");
 				attempts[i] ++;
-				printf("for db7\n");
 				break;
 			}
 			free(rec_header);
-			/*TODO delete*/
-			unACK = 0;
 		}
 	}
 	free(slicedBuf);
