@@ -116,6 +116,7 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 			}
 			printf("sending packet %i success\n", i);
 			seqOnTheFly[s.send_seqnum] = 1;
+			printf("for db1\n");
 			if (j == 0) alarm(TIMEOUT);
 			s.send_seqnum ++;
 			j++;
