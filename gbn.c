@@ -21,13 +21,13 @@ uint16_t checksum(uint16_t *buf, int nwords)
 void sig_handler(int signum){
 	attempt ++;
 	if (attempt > MAX_ATTEMPT) {
-		s.timeout = -1;
+		s.timed_out = -1;
 	}
 	int i;
 	for (i = 0; i < numPackets; i++) {
 		if (seqOnTheFly[i]) attempts[i]++;
 		if (attempts[i] > MAX_ATTEMPT) {
-			s.timeout = -1;
+			s.timed_out = -1;
 		}
 	}
 	printf("Timeout has occurred\n");
