@@ -297,7 +297,6 @@ int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
 		alarm(TIMEOUT);
 		/* waiting for receiving SYNACK */
 		gbnhdr *rec_header = malloc(sizeof(gbnhdr));
-
 		if (maybe_recvfrom(sockfd, (char *)rec_header, sizeof(rec_header), 0, s.receiverServerAddr, &s.receiverSocklen) == -1) {
 			printf("sender error in maybe_recvfrom syn ack\n");
 			attempt ++;
@@ -311,10 +310,7 @@ int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
 			make_packet(send_header, SYNACK, 0, 0, NULL, 0);
 			sendto(sockfd, send_header, sizeof(send_header), 0, s.senderServerAddr, s.senderSocklen);
 			return 0;
-		} else if (1) {
-			/* TODO if receive data, turn to rcvd mode */
 		}
-		attempt ++;
 	}
 	/* if reach max number of tries, close the connection */
 	s.state = CLOSED;
@@ -323,36 +319,36 @@ int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
 
 int gbn_listen(int sockfd, int backlog){
 	printf("in listen\n");
+	while(0) {
+		/* receiver receive from (listen to) header of the request to connect */
+		gbnhdr *send_header = malloc(sizeof(gbnhdr));
+		if (maybe_recvfrom(sockfd, (char *)send_header, sizeof(gbnhdr), 0, s.receiverServerAddr, &s.receiverSocklen) == -1) {
+			printf("error rec syn from sender\n");
+			return -1;
+		}
 
-	/* receiver receive from (listen to) header of the request to connect */
-	gbnhdr *send_header = malloc(sizeof(gbnhdr));
-	if (maybe_recvfrom(sockfd, (char *)send_header, sizeof(gbnhdr), 0, s.receiverServerAddr, &s.receiverSocklen) == -1) {
-		printf("error rec syn from sender\n");
-		return -1;
+		if (check_packetType(send_header, SYN) == 0) {
+			s.state = SYN_RCVD;
+			printf("received syn header\n");
+			return 0;
+		}
 	}
 
-	if (check_packetType(send_header, SYN) == 0) {
-		s.state = SYN_RCVD;
-		printf("received syn header\n");
-		return 0;
-	}
-
-	return -1;
+	return 0;
 }
 
 int gbn_bind(int sockfd, const struct sockaddr *server, socklen_t socklen){
-
     /* pointer to local struct on receiver server where sender address is to be stored */
+    printf("in bind\n");
     s.receiverServerAddr = (struct sockaddr *)server;
     s.receiverSocklen = socklen;
-    printf("in bind\n");
-    s.timed_out = -1;
     return bind(sockfd, server, socklen);
 }	
 
 int gbn_socket(int domain, int type, int protocol){
 		
 	/*----- Randomizing the seed. This is used by the rand() function -----*/
+	printf("in gbn_socket\n");
 	srand((unsigned)time(0));
 
     return socket(domain, type, protocol);
