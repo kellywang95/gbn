@@ -424,7 +424,7 @@ int gbn_accept(int sockfd, struct sockaddr *client, socklen_t *socklen){
 			return sockfd;
 		}
 		printf("received non-synack\n");
-		printf("recived type: %d\n",send_header.type);
+		printf("recived type: %d\n",send_header->type);
 		attempt ++;
 	}
 
