@@ -160,11 +160,9 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
 
 	gbnhdr * sender_packet = malloc(sizeof(gbnhdr));
 
-	struct sockaddr* tmp_sock;
-    socklen_t* tmp_socksocklen;
 
 RECV:
-	if (maybe_recvfrom(sockfd, (char *)sender_packet, sizeof(gbnhdr), 0, tmp_sock, tmp_socksocklen) == -1) {
+	if (maybe_recvfrom(sockfd, (char *)sender_packet, sizeof(gbnhdr), 0, s.receiverServerAddr, &s.receiverSocklen) == -1) {
 		goto RECV;
 	}
 
@@ -205,7 +203,6 @@ RECV:
 	} else {
 		goto RECV;
 	}
-
 
 	return(-1);
 }
@@ -277,25 +274,24 @@ int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
 	printf("in gbn connect\n");
 	/* Define Global State */
 	s.mode = SLOW;
-	s.senderServerAddr = (struct sockaddr *)server;
 	s.senderSocklen = socklen;
+	serv_len = socklen;
+	serv = *server;
 
 	gbnhdr *send_header = malloc(sizeof(gbnhdr));
 	make_packet(send_header, SYN, 0, 0, NULL, 0);
 
 	signal(SIGALRM, sig_handler);
 
-
-	int attempt = 0;
-	s.timed_out = -1;
-
 	/* send SYN and wait for SYNACK. after that, send a SYNACK back. */
 	while (attempt < MAX_ATTEMPT) {
-		if (sendto(sockfd, send_header, sizeof(send_header), 0, s.senderServerAddr, s.senderSocklen) == -1 ) {
+		if (sendto(sockfd, send_header, sizeof(send_header), 0, server, s.senderSocklen) == -1 ) {
 			attempt ++;
 			printf("sender send syn failed\n");
 			continue;
 		}
+		s.senderServerAddr = (struct sockaddr *)server;
+		s.receiverSocklen = socklen;
 		s.state = SYN_SENT;
 		printf("sender sent syn header\n");
 		alarm(TIMEOUT);
