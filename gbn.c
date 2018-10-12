@@ -80,6 +80,7 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 			printf("sending packet %i\n", i);
 			if (attempts[i] >= MAX_ATTEMPT) {
 				s.state = CLOSED;
+				free(slicedBuf);
 				return -1;
 			}
 			
@@ -181,6 +182,8 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
 	return(-1);
 }
 
+
+/* TODO use 4 hand shakes to ternminate */
 int gbn_close(int sockfd){
 	printf("in connection close\n");
     	printf("state %i\n", s.state);
@@ -220,30 +223,34 @@ int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
 	int attempt = 0;
 	s.timed_out = -1;
 
+	/* send SYN and wait for SYNACK. after that, send a SYNACK back. */
 	while (attempt < MAX_ATTEMPT) {
 		if (sendto(sockfd, send_header, sizeof(send_header), 0, server, s.senderSocklen) == -1 ) {
 			attempt ++;
-			printf("send syn failed\n");
+			printf("sender send syn failed\n");
 			continue;
 		}
 		s.state = SYN_SENT;
-		printf("sent syn header\n");
+		printf("sender sent syn header\n");
 		alarm(TIMEOUT);
 		/* waiting for receiving SYNACK */
 		gbnhdr *rec_header = malloc(sizeof(gbnhdr));
 
 		if (recvfrom(sockfd, (char *)&rec_header->data, sizeof(rec_header), 0, s.receiverServerAddr, &s.receiverSocklen) == -1) {
-			printf("error in recvfrom syn ack\n");
+			printf("sender error in recvfrom syn ack\n");
 			attempt ++;
 			continue;
 		}
 		/* check for timeout, check if header type is SYNACK */
 		if (check_packetType(rec_header, SYNACK) == 0) {
-			printf("received synack header\n");
+			printf("sender received synack header\n");
 			s.state = ESTABLISHED;
-			printf("connection established\n");
-
+			printf("sender connection established\n");
+			send_header = make_packet(SYNACK, 0, 0, NULL, 0);
+			sendto(sockfd, send_header, sizeof(send_header), 0, server, s.senderSocklen);
 			return 0;
+		} elif true {
+			/* TODO if receive data, turn to rcvd mode */
 		}
 		attempt ++;
 	}
@@ -304,22 +311,44 @@ int gbn_accept(int sockfd, struct sockaddr *client, socklen_t *socklen){
 	else rec_header = make_packet(SYNACK, 0, 0, NULL, 0);
 
 	client = s.receiverServerAddr;
-	printf("client data: %s\n", client->sa_data);
-	/* check if successfully send to client (original connection requester) */
-	if (sendto(sockfd, rec_header, sizeof(gbnhdr), 0, client, *socklen) == -1) {
-		
-		printf("sa_family: %d\n", client->sa_family);
 
-		printf("after sendto\n");
-		/* free(rec_header); */
-		printf("after free rec_header");
-		return -1;
+	signal(SIGALRM, sig_handler);
+
+
+	int attempt = 0;
+	s.timed_out = -1;
+
+	/* send SYNACK and wait for SYNACK. */
+	while (attempt < MAX_ATTEMPT) {
+		if (sendto(sockfd, rec_header, sizeof(gbnhdr), 0, client, *socklen) == -1 ) {
+			attempt ++;
+			printf("receiver send synack failed\n");
+			continue;
+		}
+		printf("receiver sent synack header\n");
+		alarm(TIMEOUT);
+		/* waiting for receiving SYNACK */
+		gbnhdr *send_header = malloc(sizeof(gbnhdr));
+
+		if (recvfrom(sockfd, (char *)&send_header->data, sizeof(send_header), 0, s.senderServerAddr, &s.senderSocklen) == -1) {
+			printf("receiver error in recvfrom syn ack\n");
+			attempt ++;
+			continue;
+		}
+		/* check for timeout, check if header type is SYNACK */
+		if (check_packetType(send_header, SYNACK) == 0) {
+			printf("receiver received synack header\n");
+			s.state = ESTABLISHED;
+			printf("receiver connection established\n");
+			free(rec_header);
+			return 0;
+		} 
+		attempt ++;
 	}
-	printf("sent synack header\n");
 
 	free(rec_header);
 
-	return sockfd;
+	return -1;
 }
 
 ssize_t maybe_recvfrom(int  s, char *buf, size_t len, int flags, struct sockaddr *from, socklen_t *fromlen){
