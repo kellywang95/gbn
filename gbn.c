@@ -159,17 +159,14 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
 	printf ("in receive\n");
 
 	gbnhdr * sender_packet = malloc(sizeof(gbnhdr));
-
-	struct sockaddr tmp_sock;
-    socklen_t tmp_socksocklen;
-
 RECV:
-	if (maybe_recvfrom(sockfd, (char *)sender_packet, sizeof(gbnhdr), 0, &tmp_sock, &tmp_socksocklen) == -1) {
+	if (maybe_recvfrom(sockfd, (char *)sender_packet, sizeof(gbnhdr), 0, s.receiverServerAddr, &s.receiverSocklen) == -1) {
 		goto RECV;
 	}
+	printf("after maybe_recvfrom\n");
 
 	/* if a data packet is received, check packet to verify its type */
-	if (sender_packet->type == DATA){
+	if (check_packetType(sender_packet, DATA) == 0){
 		alarm(TIMEOUT);
 		/* check data validity */
 		if (check_seqnum(sender_packet, s.rec_seqnum) == -1) {
@@ -177,7 +174,7 @@ RECV:
 			goto RECV;
 		}
 		int sender_packet_size = sender_packet->datalen;
-		if (checksum((uint16_t *)&sender_packet->data, (1 + sender_packet_size) / 2) == -1) {
+		if (checksum(buf, sender_packet_size) == -1) {
 			printf("data is corrupt\n");
 			goto RECV;
 		}
@@ -186,11 +183,12 @@ RECV:
 		/* receiver reply with DATAACK header with seqnum received */
 		gbnhdr *rec_header = malloc(sizeof(gbnhdr));
 		make_packet(rec_header, DATAACK, s.rec_seqnum, 0, NULL, 0);
+
 		if (sendto(sockfd, rec_header, sizeof(gbnhdr), 0, s.receiverServerAddr, s.receiverSocklen) == -1) {
 			printf ("error sending in gbn_recv\n");
 			goto RECV;
 		}
-		printf("sent data with seqnum %i\n", s.rec_seqnum);
+		printf("sent dataack with seqnum %i\n", s.rec_seqnum);
 		free(rec_header);
 		/* if successfully send ACK, expected next rec_seqnum ++ */
 		s.rec_seqnum ++;
@@ -205,6 +203,7 @@ RECV:
 	} else {
 		goto RECV;
 	}
+
 
 	return(-1);
 }
@@ -236,10 +235,8 @@ int gbn_close(int sockfd){
 			s.state = FIN_SENT;
 		}
 		else if (s.state == FIN_SENT) {
-			struct sockaddr tmp_sock;
-			socklen_t tmp_sock_len;
 			gbnhdr *finack_packet = malloc(sizeof(gbnhdr));
-			if (maybe_recvfrom(sockfd, (char *)finack_packet, sizeof(gbnhdr), 0, &tmp_sock, &tmp_sock_len) == -1) {
+			if (maybe_recvfrom(sockfd, (char *)finack_packet, sizeof(gbnhdr), 0, s.receiverServerAddr, &s.receiverSocklen) == -1) {
 				continue;
 			}
 			if (finack_packet->type == FINACK) {
