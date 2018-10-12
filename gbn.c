@@ -335,11 +335,9 @@ int gbn_accept(int sockfd, struct sockaddr *client, socklen_t *socklen){
 		alarm(TIMEOUT);
 		/* waiting for receiving SYNACK */
 		gbnhdr *send_header = malloc(sizeof(gbnhdr));
-LALALA:
 		if (recvfrom(sockfd, (char *)send_header, sizeof(send_header), 0, s.senderServerAddr, &s.senderSocklen) == -1) {
 			printf("receiver error in recvfrom syn ack\n");
-			attempt ++;
-			continue;
+			attempt ++;		
 		}
 		/* check for timeout, check if header type is SYNACK */
 		if (check_packetType(send_header, SYNACK) == 0) {
@@ -347,11 +345,9 @@ LALALA:
 			s.state = ESTABLISHED;
 			printf("receiver connection established\n");
 			free(rec_header);
-			goto LALALA;
-			return 0;
+			return sockfd;
 		} else {
 			printf("wrong type: %d\n", send_header->type);
-			goto LALALA;
 		}
 		attempt ++;
 	}
