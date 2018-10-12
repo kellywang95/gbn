@@ -93,8 +93,7 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 			memcpy(slicedBuf, buf + i * DATALEN, currSize);
 
 			gbnhdr *packet = make_packet(DATA, s.send_seqnum, -1, slicedBuf, currSize);
-			if (attempts[i] < MAX_ATTEMPT &&
-						sendto(sockfd, packet, sizeof(*packet), flags, s.senderServerAddr, s.senderSocklen) == -1) {
+			if (sendto(sockfd, packet, sizeof(*packet), flags, s.senderServerAddr, s.senderSocklen) == -1) {
 				attempts[i] ++;
 				free(packet);
 				continue;
