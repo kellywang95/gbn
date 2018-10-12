@@ -236,8 +236,10 @@ int gbn_close(int sockfd){
 			s.state = FIN_SENT;
 		}
 		else if (s.state == FIN_SENT) {
+			struct sockaddr tmp_sock;
+			socklen_t tmp_sock_len;
 			gbnhdr *finack_packet = malloc(sizeof(gbnhdr));
-			if (maybe_recvfrom(sockfd, (char *)finack_packet, sizeof(gbnhdr), 0, s.receiverServerAddr, &s.receiverSocklen) == -1) {
+			if (maybe_recvfrom(sockfd, (char *)finack_packet, sizeof(gbnhdr), 0, &tmp_sock, &tmp_sock_len) == -1) {
 				continue;
 			}
 			if (finack_packet->type == FINACK) {
