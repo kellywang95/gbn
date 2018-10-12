@@ -5,6 +5,10 @@ int* attempts;
 int attempt = 0;
 int* seqOnTheFly;
 int numPackets;
+struct sockaddr serv;
+struct sockaddr cli;
+socklen_t serv_len;
+socklen_t cli_len;
 
 uint16_t checksum(uint16_t *buf, int nwords)
 {
@@ -30,10 +34,8 @@ void sig_handler(int signum){
 	alarm(TIMEOUT);
 }
 
-
-gbnhdr * make_packet(uint8_t type, uint8_t seqnum, int isHeader, char *buffer, int datalen){
-	printf("datalen %i\n", datalen);
-	gbnhdr *packet = malloc(sizeof(gbnhdr));
+void make_packet(gbnhdr* packet,uint8_t type, uint8_t seqnum, int isHeader, char *buffer, int datalen){
+	packet = malloc(sizeof(gbnhdr));
 	packet->type = type;
 	packet->seqnum = seqnum;
 
@@ -43,7 +45,6 @@ gbnhdr * make_packet(uint8_t type, uint8_t seqnum, int isHeader, char *buffer, i
 		packet->datalen = datalen;
 		packet->checksum = checksum((uint16_t *) buffer, (1 + datalen) / 2);
 	}
-	return packet;
 }
 
 
@@ -108,7 +109,8 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 			memset(slicedBuf, '\0', currSize);
 			memcpy(slicedBuf, buf + i * DATALEN, currSize);
 
-			gbnhdr *packet = make_packet(DATA, s.send_seqnum, -1, slicedBuf, currSize);
+			gbnhdr *packet;
+			make_packet(packet, DATA, s.send_seqnum, -1, slicedBuf, currSize);
 			if (attempts[i] < MAX_ATTEMPT && sendto(sockfd, packet, sizeof(*packet), flags, s.senderServerAddr, s.senderSocklen) == -1) {
 				printf("sending packet %i\n error", i);
 				attempts[i] ++;
@@ -190,7 +192,8 @@ RECV:
 
 		memcpy(buf, sender_packet->data, sender_packet_size);
 		/* receiver reply with DATAACK header with seqnum received */
-		gbnhdr *rec_header = make_packet(DATAACK, s.rec_seqnum, 0, NULL, 0);
+		gbnhdr *rec_header;
+		make_packet(rec_header, DATAACK, s.rec_seqnum, 0, NULL, 0);
 
 		if (sendto(sockfd, rec_header, sizeof(gbnhdr), 0, s.receiverServerAddr, s.receiverSocklen) == -1) {
 			printf ("error sending in gbn_recv\n");
@@ -203,7 +206,8 @@ RECV:
 		return sender_packet_size;
 	} else if (check_packetType(sender_packet, FIN) == 0) {
 		printf("reply with FINACK header \n");
-		gbnhdr *rec_header = make_packet(FINACK, 0, 0, NULL, 0);
+		gbnhdr *rec_header;
+		make_packet(rec_header, FINACK, 0, 0, NULL, 0);
 		if (sendto(sockfd, rec_header, sizeof(gbnhdr), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
 		s.state = FIN_RCVD;
 		return 0;
@@ -223,7 +227,8 @@ int gbn_close(int sockfd){
     while (1) {
     	if (s.state == ESTABLISHED || s.state == SYN_SENT || s.state == SYN_RCVD) {
 			printf("client send fin to server to close connection \n");
-			gbnhdr * send_header = make_packet(FIN, 0, 0, NULL, 0);
+			gbnhdr * send_header;
+			make_packet(send_header, FIN, 0, 0, NULL, 0);
 			if (sendto(sockfd, send_header, sizeof(gbnhdr), 0, s.senderServerAddr, s.senderSocklen) == -1) return -1;
 			if (sendto(sockfd, send_header, sizeof(gbnhdr), 0, s.senderServerAddr, s.senderSocklen) == -1) return -1;
 			if (sendto(sockfd, send_header, sizeof(gbnhdr), 0, s.senderServerAddr, s.senderSocklen) == -1) return -1;
@@ -252,7 +257,8 @@ int gbn_close(int sockfd){
 		/* if receiver sees a FIN header, reply with FINACK and close socket connection */
 		} else if (s.state == FIN_RCVD) {
 			printf("server send finack to client to close connection\n");
-			gbnhdr * rec_header = make_packet(FINACK, 0, 0, NULL, 0);
+			gbnhdr * rec_header;
+			make_packet(rec_header, FINACK, 0, 0, NULL, 0);
 			if (sendto(sockfd, &rec_header, sizeof(gbnhdr), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
 			if (sendto(sockfd, &rec_header, sizeof(gbnhdr), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
 			if (sendto(sockfd, &rec_header, sizeof(gbnhdr), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
@@ -283,7 +289,8 @@ int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
 	s.senderServerAddr = (struct sockaddr *)server;
 	s.senderSocklen = socklen;
 
-	gbnhdr *send_header = make_packet(SYN, 0, 0, NULL, 0);
+	gbnhdr *send_header;
+	make_packet(send_header, SYN, 0, 0, NULL, 0);
 
 	signal(SIGALRM, sig_handler);
 
@@ -314,7 +321,7 @@ int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
 			printf("sender received synack header\n");
 			s.state = ESTABLISHED;
 			printf("sender connection established\n");
-			send_header = make_packet(SYNACK, 0, 0, NULL, 0);
+			make_packet(send_header, SYNACK, 0, 0, NULL, 0);
 			sendto(sockfd, send_header, sizeof(send_header), 0, s.senderServerAddr, s.senderSocklen);
 			return 0;
 		} else if (1) {
@@ -374,9 +381,9 @@ int gbn_accept(int sockfd, struct sockaddr *client, socklen_t *socklen){
 	printf("in accept\n");
 
 	/* if connection teardown initiated, reject connection by sending RST */
-	if (s.state == FIN_SENT) rec_header = make_packet(RST, 0, 0, NULL, 0);
+	if (s.state == FIN_SENT) make_packet(rec_header, RST, 0, 0, NULL, 0);
 	/* accept connection initiation by sending header with SYNACK */
-	else rec_header = make_packet(SYNACK, 0, 0, NULL, 0);
+	else make_packet(rec_header, SYNACK, 0, 0, NULL, 0);
 
 	client = s.receiverServerAddr;
 
