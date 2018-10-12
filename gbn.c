@@ -138,6 +138,7 @@ CONTINUERECV:
 			/* verify there is no timeout, verify type = dataack and seqnum are expected */
 			if (is_timeout() == -1 && check_packetType(rec_header, DATAACK) == 0
 			&& check_seqnum(rec_header, s.rec_seqnum) == 0) {
+				printf("for db8\n");
 				printf("received successfully\n");
 				s.mode = s.mode == SLOW ? MODERATE : FAST;
 				seqOnTheFly[s.rec_seqnum] = 0;
@@ -150,7 +151,7 @@ CONTINUERECV:
 				s.send_seqnum = s.rec_seqnum;
 				s.mode = SLOW;
 				free(rec_header);
-				printf("for db5\n");
+				printf("for db6\n");
 				attempts[i] ++;
 				printf("for db7\n");
 				break;
