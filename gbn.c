@@ -14,7 +14,9 @@ uint16_t checksum(uint16_t *buf, int nwords)
 
 void sig_handler(int signum){
 	s.timed_out = 0;
+	alarm(TIMEOUT);
 	printf("Timeout has occurred\n");
+	signal(SIGALRM, sig_handler);
 }
 
 
