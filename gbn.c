@@ -140,7 +140,7 @@ CONTINUERECV:
 			if (is_timeout() == -1 && check_packetType(rec_header, DATAACK) == 0
 			&& check_seqnum(rec_header, s.rec_seqnum) == 0) {
 			*/
-			if (check_seqnum(rec_header, s.rec_seqnum) == 0) {
+			if (is_timeout() == -1 && check_packetType(rec_header, DATAACK) == 0) {
 				printf("for db8\n");
 				printf("received successfully\n");
 				s.mode = s.mode == SLOW ? MODERATE : FAST;
