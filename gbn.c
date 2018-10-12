@@ -107,7 +107,7 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 		while (unACK > 0) {
 			/* receive ack header */
 			gbnhdr *rec_header = malloc(sizeof(gbnhdr));
-			maybe_recvfrom(sockfd, (char *)&rec_header->data, sizeof(gbnhdr), 0, s.receiverServerAddr, &s.receiverSocklen);
+			recvfrom(sockfd, (char *)&rec_header->data, sizeof(gbnhdr), 0, s.receiverServerAddr, &s.receiverSocklen);
 			/* verify there is no timeout, verify type = dataack and seqnum are expected */
 			if (is_timeout() == -1 && check_packetType(rec_header, DATAACK) == 0
 			&& check_seqnum(rec_header, s.rec_seqnum) == 0) {
@@ -135,7 +135,7 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
 	/* receiver receive packet from sender and if valid, send DATAACK */
 	printf ("in receive\n");
 	gbnhdr * sender_packet = malloc(sizeof(gbnhdr));
-	maybe_recvfrom(sockfd, (char *)&sender_packet->data, sizeof(gbnhdr), 0, s.receiverServerAddr, &s.receiverSocklen);
+	recvfrom(sockfd, (char *)&sender_packet->data, sizeof(gbnhdr), 0, s.receiverServerAddr, &s.receiverSocklen);
 	printf("after recvfrom\n");
 
 	/* if a data packet is received, check packet to verify its type */
@@ -232,7 +232,7 @@ int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
 		/* waiting for receiving SYNACK */
 		gbnhdr *rec_header = malloc(sizeof(gbnhdr));
 
-		if (maybe_recvfrom(sockfd, (char *)&rec_header->data, sizeof(rec_header), 0, s.receiverServerAddr, &s.receiverSocklen) == -1) {
+		if (recvfrom(sockfd, (char *)&rec_header->data, sizeof(rec_header), 0, s.receiverServerAddr, &s.receiverSocklen) == -1) {
 			printf("error in recvfrom syn ack\n");
 			attempt ++;
 			continue;
@@ -257,7 +257,7 @@ int gbn_listen(int sockfd, int backlog){
 
 	/* receiver receive from (listen to) header of the request to connect */
 	gbnhdr *send_header = malloc(sizeof(gbnhdr));
-	if (maybe_recvfrom(sockfd, (char *)&send_header->data, sizeof(gbnhdr), 0, s.receiverServerAddr, &s.receiverSocklen) == -1) {
+	if (recvfrom(sockfd, (char *)&send_header->data, sizeof(gbnhdr), 0, s.receiverServerAddr, &s.receiverSocklen) == -1) {
 		printf("error rec syn from sender\n");
 		return -1;
 	}
