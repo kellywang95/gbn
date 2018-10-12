@@ -159,11 +159,14 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
 	printf ("in receive\n");
 
 	gbnhdr * sender_packet = malloc(sizeof(gbnhdr));
+
+	struct sockaddr tmp_sock;
+    socklen_t tmp_socksocklen;
+
 RECV:
-	if (maybe_recvfrom(sockfd, (char *)sender_packet, sizeof(gbnhdr), 0, s.receiverServerAddr, &s.receiverSocklen) == -1) {
+	if (maybe_recvfrom(sockfd, (char *)sender_packet, sizeof(gbnhdr), 0, &tmp_sock, &tmp_socksocklen) == -1) {
 		goto RECV;
 	}
-	printf("after maybe_recvfrom\n");
 
 	/* if a data packet is received, check packet to verify its type */
 	if (check_packetType(sender_packet, DATA) == 0){
@@ -171,22 +174,21 @@ RECV:
 		/* check data validity */
 		if (check_seqnum(sender_packet, s.rec_seqnum) == -1) {
 			 printf("received an unexpected seqnum, discarding data...\n");
-			return 0;
+			goto RECV;
 		}
 		int sender_packet_size = sender_packet->datalen;
-		if (checksum(buf, sender_packet_size) == -1) {
+		if (checksum((uint16_t *)&sender_packet.data, (1 + sender_packet_size) / 2) == -1) {
 			printf("data is corrupt\n");
-			return 0;
+			goto RECV;
 		}
 
 		memcpy(buf, sender_packet->data, sender_packet_size);
 		/* receiver reply with DATAACK header with seqnum received */
 		gbnhdr *rec_header = malloc(sizeof(gbnhdr));
 		make_packet(rec_header, DATAACK, s.rec_seqnum, 0, NULL, 0);
-
-		if (sendto(sockfd, rec_header, sizeof(gbnhdr), 0, s.receiverServerAddr, s.receiverSocklen) == -1) {
+		if (sendto(sockfd, rec_header, sizeof(gbnhdr), 0, &cli, cli_len) == -1) {
 			printf ("error sending in gbn_recv\n");
-			return -1;
+			goto RECV;
 		}
 		printf("sent data with seqnum %i\n", s.rec_seqnum);
 		free(rec_header);
@@ -325,36 +327,38 @@ int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
 
 int gbn_listen(int sockfd, int backlog){
 	printf("in listen\n");
+	while(0) {
+		gbnhdr *send_header = malloc(sizeof(gbnhdr));
+		/* receiver receive from (listen to) header of the request to connect */
+		
+		if (maybe_recvfrom(sockfd, (char *)send_header, sizeof(gbnhdr), 0, s.receiverServerAddr, &s.receiverSocklen) == -1) {
+			printf("error rec syn from sender\n");
+			return -1;
+		}
 
-	/* receiver receive from (listen to) header of the request to connect */
-	gbnhdr *send_header = malloc(sizeof(gbnhdr));
-	if (maybe_recvfrom(sockfd, (char *)send_header, sizeof(gbnhdr), 0, s.receiverServerAddr, &s.receiverSocklen) == -1) {
-		printf("error rec syn from sender\n");
-		return -1;
+		if (check_packetType(send_header, SYN) == 0) {
+			s.state = SYN_RCVD;
+			printf("received syn header\n");
+			return 0;
+		}
 	}
 
-	if (check_packetType(send_header, SYN) == 0) {
-		s.state = SYN_RCVD;
-		printf("received syn header\n");
-		return 0;
-	}
-
-	return -1;
+	return 0;
 }
 
 int gbn_bind(int sockfd, const struct sockaddr *server, socklen_t socklen){
 
     /* pointer to local struct on receiver server where sender address is to be stored */
+    printf("in bind\n");
     s.receiverServerAddr = (struct sockaddr *)server;
     s.receiverSocklen = socklen;
-    printf("in bind\n");
-    s.timed_out = -1;
     return bind(sockfd, server, socklen);
 }	
 
 int gbn_socket(int domain, int type, int protocol){
 		
 	/*----- Randomizing the seed. This is used by the rand() function -----*/
+	printf("in gbn_socket\n");
 	srand((unsigned)time(0));
 
     return socket(domain, type, protocol);
@@ -380,10 +384,32 @@ int gbn_accept(int sockfd, struct sockaddr *client, socklen_t *socklen){
 
 
 	int attempt = 0;
-	s.timed_out = -1;
 
+
+	struct sockaddr t;
+	struct sockaddr* tmp_sock = &t;
+	socklen_t t_sock_len;
+	socklen_t* tmp_sock_len = &t_sock_len;
+	cli = *client;
+	cli_len = *socklen;
+	int syned = 0;
 	/* send SYNACK and wait for SYNACK. */
 	while (attempt < MAX_ATTEMPT) {
+		gbnhdr* send_header_syn = malloc(sizeof(gbnhdr));
+		if (!syned) {
+			if (maybe_recvfrom(sockfd, (char *)send_header_syn, sizeof(gbnhdr), 0, tmp_sock, tmp_sock_len) == -1) {
+				printf("error rec syn from sender\n");
+				return -1;
+			}
+			if (check_packetType(send_header_syn, SYN) != 0) {
+				printf("wrong type received. expect SYN\n");
+				attempt ++;
+				continue;
+			}
+			syned = 1;
+			cli = *tmp_sock;
+			cli_len = *tmp_sock_len;
+		}
 		if (sendto(sockfd, rec_header, sizeof(gbnhdr), 0, client, *socklen) == -1 ) {
 			attempt ++;
 			printf("receiver send synack failed\n");
