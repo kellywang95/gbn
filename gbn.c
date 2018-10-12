@@ -160,11 +160,11 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
 
 	gbnhdr * sender_packet = malloc(sizeof(gbnhdr));
 
-	struct sockaddr tmp_sock;
-    socklen_t tmp_socksocklen;
+	struct sockaddr* tmp_sock;
+    socklen_t* tmp_socksocklen;
 
 RECV:
-	if (maybe_recvfrom(sockfd, (char *)sender_packet, sizeof(gbnhdr), 0, &tmp_sock, &tmp_socksocklen) == -1) {
+	if (maybe_recvfrom(sockfd, (char *)sender_packet, sizeof(gbnhdr), 0, tmp_sock, tmp_socksocklen) == -1) {
 		goto RECV;
 	}
 
