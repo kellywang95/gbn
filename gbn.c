@@ -99,6 +99,7 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 				free(packet);
 				continue;
 			}
+			printf("sending packet %i\n success", i);
 			if (j == 0) alarm(TIMEOUT);
 			s.send_seqnum ++;
 			j++;
