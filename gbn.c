@@ -99,7 +99,7 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 				free(packet);
 				continue;
 			}
-			printf("sending packet %i\n success", i);
+			printf("sending packet %i success\n", i);
 			if (j == 0) alarm(TIMEOUT);
 			s.send_seqnum ++;
 			j++;
@@ -335,7 +335,7 @@ int gbn_accept(int sockfd, struct sockaddr *client, socklen_t *socklen){
 		alarm(TIMEOUT);
 		/* waiting for receiving SYNACK */
 		gbnhdr *send_header = malloc(sizeof(gbnhdr));
-
+LALALA:
 		if (recvfrom(sockfd, (char *)send_header, sizeof(send_header), 0, s.senderServerAddr, &s.senderSocklen) == -1) {
 			printf("receiver error in recvfrom syn ack\n");
 			attempt ++;
@@ -347,8 +347,12 @@ int gbn_accept(int sockfd, struct sockaddr *client, socklen_t *socklen){
 			s.state = ESTABLISHED;
 			printf("receiver connection established\n");
 			free(rec_header);
+			goto LALALA;
 			return 0;
-		} 
+		} else {
+			printf("wrong type: %d\n", send_header->type);
+			goto LALALA;
+		}
 		attempt ++;
 	}
 
