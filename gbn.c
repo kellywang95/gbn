@@ -177,7 +177,7 @@ RECV:
 			goto RECV;
 		}
 		int sender_packet_size = sender_packet->datalen;
-		if (checksum((uint16_t *)&sender_packet.data, (1 + sender_packet_size) / 2) == -1) {
+		if (checksum((uint16_t *)&sender_packet->data, (1 + sender_packet_size) / 2) == -1) {
 			printf("data is corrupt\n");
 			goto RECV;
 		}
