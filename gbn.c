@@ -92,7 +92,7 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 
 			gbnhdr *packet = make_packet(DATA, s.send_seqnum, -1, slicedBuf, currSize);
 			if (attempts[i] < MAX_ATTEMPT &&
-						sendto(sockfd, packet, sizeof(*packet), flags, s.senderServerAddr, s.senderSocklen) == -1) {
+						sendto(sockfd, packet, sizeof(*packet), flags, &s.senderServerAddr, s.senderSocklen) == -1) {
 				attempts[i] ++;
 				free(packet);
 				continue;
@@ -108,7 +108,7 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 		while (unACK > 0) {
 			/* receive ack header */
 			gbnhdr *rec_header = malloc(sizeof(gbnhdr));
-			maybe_recvfrom(sockfd, (char *)&rec_header->data, sizeof(gbnhdr), 0, s.receiverServerAddr, &s.receiverSocklen);
+			recvfrom(sockfd, (char *)&rec_header->data, sizeof(gbnhdr), 0, &s.receiverServerAddr, &s.receiverSocklen);
 			/* verify there is no timeout, verify type = dataack and seqnum are expected */
 			if (is_timeout() == -1 && check_packetType(rec_header, DATAACK) == 0
 			&& check_seqnum(rec_header, s.rec_seqnum) == 0) {
@@ -136,7 +136,7 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
 	/* receiver receive packet from sender and if valid, send DATAACK */
 	printf ("in receive\n");
 	gbnhdr * sender_packet = malloc(sizeof(gbnhdr));
-	maybe_recvfrom(sockfd, (char *)&sender_packet->data, sizeof(gbnhdr), 0, s.receiverServerAddr, &s.receiverSocklen);
+	recvfrom(sockfd, (char *)&sender_packet->data, sizeof(gbnhdr), 0, &s.receiverServerAddr, &s.receiverSocklen);
 	printf("after recvfrom\n");
 
 	/* if a data packet is received, check packet to verify its type */
@@ -157,7 +157,7 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
 		/* receiver reply with DATAACK header with seqnum received */
 		gbnhdr *rec_header = make_packet(DATAACK, s.rec_seqnum, 0, NULL, 0);
 
-		if (sendto(sockfd, rec_header, sizeof(gbnhdr), 0, s.receiverServerAddr, s.receiverSocklen) == -1) {
+		if (sendto(sockfd, rec_header, sizeof(gbnhdr), 0, &s.receiverServerAddr, s.receiverSocklen) == -1) {
 			printf ("error sending in gbn_recv\n");
 			return -1;
 		}
@@ -174,7 +174,7 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
 	if (check_packetType(sender_packet, FIN) == 0) {
 		printf("reply with FINACK header \n");
 		gbnhdr *rec_header = make_packet(FINACK, 0, 0, NULL, 0);
-		if (sendto(sockfd, rec_header, sizeof(gbnhdr), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
+		if (sendto(sockfd, rec_header, sizeof(gbnhdr), 0, &s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
 		s.state = FIN_RCVD;
 		return 0;
 	}
@@ -191,7 +191,7 @@ int gbn_close(int sockfd){
 	if (s.state == ESTABLISHED || s.state == SYN_SENT || s.state == SYN_RCVD) {
 		printf("sending fin to close connection \n");
 		gbnhdr * send_header = make_packet(FIN, 0, 0, NULL, 0);
-		if (sendto(sockfd, send_header, sizeof(gbnhdr), 0, s.senderServerAddr, s.senderSocklen) == -1) return -1;
+		if (sendto(sockfd, send_header, sizeof(gbnhdr), 0, &s.senderServerAddr, s.senderSocklen) == -1) return -1;
 
 		s.state = FIN_SENT;
 		printf("fin sent to close connection\n");
@@ -200,7 +200,7 @@ int gbn_close(int sockfd){
 	else if (s.state == FIN_SENT) {
 		printf("sending finack to close connection \n");
 		gbnhdr * rec_header = make_packet(FINACK, 0, 0, NULL, 0);
-		if (sendto(sockfd, rec_header, sizeof(gbnhdr), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
+		if (sendto(sockfd, rec_header, sizeof(gbnhdr), 0, &s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
 		printf("finack sent to close connection\n");
 		close(sockfd);
 	}
@@ -212,7 +212,7 @@ int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
 	printf("in gbn connect\n");
 	/* Define Global State */
 	s.mode = SLOW;
-	s.senderServerAddr = (struct sockaddr *)server;
+	s.senderServerAddr = *(struct sockaddr *)server;
 	s.senderSocklen = socklen;
 
 	gbnhdr *send_header = make_packet(SYN, 0, 0, NULL, 0);
@@ -236,7 +236,7 @@ int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
 		/* waiting for receiving SYNACK */
 		gbnhdr *rec_header = malloc(sizeof(gbnhdr));
 
-		if (maybe_recvfrom(sockfd, (char *)&rec_header->data, sizeof(rec_header), 0, s.receiverServerAddr, &s.receiverSocklen) == -1) {
+		if (recvfrom(sockfd, (char *)&rec_header->data, sizeof(rec_header), 0, &s.receiverServerAddr, &s.receiverSocklen) == -1) {
 			printf("sender error in recvfrom syn ack\n");
 			attempt ++;
 			continue;
@@ -249,7 +249,7 @@ int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
 			send_header = make_packet(SYNACK, 0, 0, NULL, 0);
 			sendto(sockfd, send_header, sizeof(send_header), 0, server, s.senderSocklen);
 			return 0;
-		} elif true {
+		} else if (1) {
 			/* TODO if receive data, turn to rcvd mode */
 		}
 		attempt ++;
@@ -264,7 +264,7 @@ int gbn_listen(int sockfd, int backlog){
 
 	/* receiver receive from (listen to) header of the request to connect */
 	gbnhdr *send_header = malloc(sizeof(gbnhdr));
-	if (maybe_recvfrom(sockfd, (char *)&send_header->data, sizeof(gbnhdr), 0, s.receiverServerAddr, &s.receiverSocklen) == -1) {
+	if (recvfrom(sockfd, (char *)&send_header->data, sizeof(gbnhdr), 0, &s.receiverServerAddr, &s.receiverSocklen) == -1) {
 		printf("error rec syn from sender\n");
 		return -1;
 	}
@@ -281,7 +281,7 @@ int gbn_listen(int sockfd, int backlog){
 int gbn_bind(int sockfd, const struct sockaddr *server, socklen_t socklen){
 
     /* pointer to local struct on receiver server where sender address is to be stored */
-    s.receiverServerAddr = (struct sockaddr *)server;
+    s.receiverServerAddr = *(struct sockaddr *)server;
     s.receiverSocklen = socklen;
     printf("in bind\n");
     s.timed_out = -1;
@@ -310,7 +310,7 @@ int gbn_accept(int sockfd, struct sockaddr *client, socklen_t *socklen){
 	/* accept connection initiation by sending header with SYNACK */
 	else rec_header = make_packet(SYNACK, 0, 0, NULL, 0);
 
-	client = s.receiverServerAddr;
+	client = &s.receiverServerAddr;
 
 	signal(SIGALRM, sig_handler);
 
@@ -330,7 +330,7 @@ int gbn_accept(int sockfd, struct sockaddr *client, socklen_t *socklen){
 		/* waiting for receiving SYNACK */
 		gbnhdr *send_header = malloc(sizeof(gbnhdr));
 
-		if (maybe_recvfrom(sockfd, (char *)&send_header->data, sizeof(send_header), 0, s.senderServerAddr, &s.senderSocklen) == -1) {
+		if (recvfrom(sockfd, (char *)&send_header->data, sizeof(send_header), 0, &s.senderServerAddr, &s.senderSocklen) == -1) {
 			printf("receiver error in recvfrom syn ack\n");
 			attempt ++;
 			continue;
