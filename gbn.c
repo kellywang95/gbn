@@ -136,10 +136,8 @@ CONTINUERECV:
 			}
 			printf("for db4\n");
 			/* verify there is no timeout, verify type = dataack and seqnum are expected */
-			/*
 			if (is_timeout() == -1 && check_packetType(rec_header, DATAACK) == 0
 			&& check_seqnum(rec_header, s.rec_seqnum) == 0) {
-
 				printf("for db8\n");
 				printf("received successfully\n");
 				s.mode = s.mode == SLOW ? MODERATE : FAST;
@@ -158,7 +156,6 @@ CONTINUERECV:
 				printf("for db7\n");
 				break;
 			}
-			*/
 			free(rec_header);
 		}
 	}
@@ -236,12 +233,6 @@ int gbn_close(int sockfd){
 			if (sendto(sockfd, send_header, sizeof(gbnhdr), 0, s.senderServerAddr, s.senderSocklen) == -1) return -1;
 			if (sendto(sockfd, send_header, sizeof(gbnhdr), 0, s.senderServerAddr, s.senderSocklen) == -1) return -1;
 			if (sendto(sockfd, send_header, sizeof(gbnhdr), 0, s.senderServerAddr, s.senderSocklen) == -1) return -1;
-			if (sendto(sockfd, send_header, sizeof(gbnhdr), 0, s.senderServerAddr, s.senderSocklen) == -1) return -1;
-			if (sendto(sockfd, send_header, sizeof(gbnhdr), 0, s.senderServerAddr, s.senderSocklen) == -1) return -1;
-			if (sendto(sockfd, send_header, sizeof(gbnhdr), 0, s.senderServerAddr, s.senderSocklen) == -1) return -1;
-			if (sendto(sockfd, send_header, sizeof(gbnhdr), 0, s.senderServerAddr, s.senderSocklen) == -1) return -1;
-			if (sendto(sockfd, send_header, sizeof(gbnhdr), 0, s.senderServerAddr, s.senderSocklen) == -1) return -1;
-			if (sendto(sockfd, send_header, sizeof(gbnhdr), 0, s.senderServerAddr, s.senderSocklen) == -1) return -1;
 			s.state = FIN_SENT;
 		}
 		else if (s.state == FIN_SENT) {
@@ -257,15 +248,6 @@ int gbn_close(int sockfd){
 		} else if (s.state == FIN_RCVD) {
 			printf("server send finack to client to close connection\n");
 			gbnhdr * rec_header = make_packet(FINACK, 0, 0, NULL, 0);
-			if (sendto(sockfd, &rec_header, sizeof(gbnhdr), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
-			if (sendto(sockfd, &rec_header, sizeof(gbnhdr), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
-			if (sendto(sockfd, &rec_header, sizeof(gbnhdr), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
-			if (sendto(sockfd, &rec_header, sizeof(gbnhdr), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
-			if (sendto(sockfd, &rec_header, sizeof(gbnhdr), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
-			if (sendto(sockfd, &rec_header, sizeof(gbnhdr), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
-			if (sendto(sockfd, &rec_header, sizeof(gbnhdr), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
-			if (sendto(sockfd, &rec_header, sizeof(gbnhdr), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
-			if (sendto(sockfd, &rec_header, sizeof(gbnhdr), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
 			if (sendto(sockfd, &rec_header, sizeof(gbnhdr), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
 			if (sendto(sockfd, &rec_header, sizeof(gbnhdr), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
 			if (sendto(sockfd, &rec_header, sizeof(gbnhdr), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
