@@ -353,7 +353,6 @@ int gbn_accept(int sockfd, struct sockaddr *client, socklen_t *socklen){
 		attempt ++;
 	}
 
-
 	free(rec_header);
 
 	return -1;
