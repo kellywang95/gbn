@@ -230,7 +230,7 @@ int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
 
 	/* send SYN and wait for SYNACK. after that, send a SYNACK back. */
 	while (attempt < MAX_ATTEMPT) {
-		if (sendto(sockfd, send_header, sizeof(send_header), 0, server, s.senderSocklen) == -1 ) {
+		if (sendto(sockfd, send_header, sizeof(send_header), 0, s.senderServerAddr, s.senderSocklen) == -1 ) {
 			attempt ++;
 			printf("sender send syn failed\n");
 			continue;
@@ -252,7 +252,7 @@ int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
 			s.state = ESTABLISHED;
 			printf("sender connection established\n");
 			send_header = make_packet(SYNACK, 0, 0, NULL, 0);
-			sendto(sockfd, send_header, sizeof(send_header), 0, server, s.senderSocklen);
+			sendto(sockfd, send_header, sizeof(send_header), 0, s.senderServerAddr, s.senderSocklen);
 			return 0;
 		} else if (1) {
 			/* TODO if receive data, turn to rcvd mode */
