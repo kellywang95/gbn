@@ -20,9 +20,15 @@ uint16_t checksum(uint16_t *buf, int nwords)
 
 void sig_handler(int signum){
 	attempt ++;
+	if (attempt > MAX_ATTEMPT) {
+		s.timeout = -1;
+	}
 	int i;
 	for (i = 0; i < numPackets; i++) {
 		if (seqOnTheFly[i]) attempts[i]++;
+		if (attempts[i] > MAX_ATTEMPT) {
+			s.timeout = -1;
+		}
 	}
 	printf("Timeout has occurred\n");
 	signal(SIGALRM, sig_handler);
@@ -91,9 +97,17 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 	signal(SIGALRM, sig_handler);
 
 	while (i < numPackets) {
+		if (is_timeout()) {
+			free(slicedBuf);
+			return 0;
+		}
 		int j = 0;
 
 		while ( i < numPackets) {
+			if (is_timeout()) {
+				free(slicedBuf);
+				return 0;
+			}
 			printf("sending packet %i\n", i);
 			if (attempts[i] >= MAX_ATTEMPT) {
 				s.state = CLOSED;
@@ -129,6 +143,10 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 		int unACK = j;
 		while (unACK > 0) {
 			/* receive ack header */
+			if (is_timeout()) {
+				free(slicedBuf);
+				return 0;
+			}
 			gbnhdr *rec_header = malloc(sizeof(gbnhdr));
 CONTINUERECV:
 			if (maybe_recvfrom(sockfd, (char *)&rec_header, sizeof(rec_header), 0, s.receiverServerAddr, &s.receiverSocklen) == -1) {
