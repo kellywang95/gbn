@@ -280,7 +280,7 @@ int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
 			printf("sender send syn failed\n");
 			continue;
 		}
-		s.receiverServerAddr = server;
+		s.receiverServerAddr = (struct sockaddr *)server;
 		s.receiverSocklen = socklen;
 		s.state = SYN_SENT;
 		alarm(TIMEOUT);
@@ -329,7 +329,7 @@ int gbn_listen(int sockfd, int backlog){
 int gbn_bind(int sockfd, const struct sockaddr *server, socklen_t socklen){
 	/* pointer to local struct on receiver server where sender address is to be stored */
 	printf("in bind\n");
-	s.receiverServerAddr = server;
+	s.receiverServerAddr = (struct sockaddr *)server;
 	s.receiverSocklen = socklen;
 	return bind(sockfd, server, socklen);
 }	
