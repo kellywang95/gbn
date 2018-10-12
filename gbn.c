@@ -191,7 +191,6 @@ RECV:
 		}
 
 		memcpy(buf, sender_packet->data, sender_packet_size);
-		printf("%s\n", sender_packet->data);
 		/* receiver reply with DATAACK header with seqnum received */
 		gbnhdr *rec_header = make_packet(DATAACK, s.rec_seqnum, 0, NULL, 0);
 
