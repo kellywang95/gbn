@@ -1,10 +1,6 @@
 #include "gbn.h"
 
 state_t s;
-struct sockaddr serv;
-struct sockaddr cli;
-socklen_t serv_len;
-socklen_t cli_len;
 int* attempts;
 int attempt = 0;
 int* seqOnTheFly;
@@ -126,8 +122,6 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
 		while (unACK > 0) {
 			/* receive ack header */
 			gbnhdr rec_header;
-			struct sockaddr tmp_sock;
-			socklen_t tmp_sock_len;
 CONTINUERECV:
 			if (maybe_recvfrom(sockfd, (char *)&rec_header, sizeof(rec_header), 0, s.receiverServerAddr, &s.receiverSocklen) == -1) {
 				goto CONTINUERECV;
@@ -159,9 +153,6 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
 	
 	gbnhdr sender_packet;
 
-    struct sockaddr tmp_sock;
-    socklen_t tmp_socksocklen;
-
 RECV:
 	if (maybe_recvfrom(sockfd, (char *)&sender_packet, sizeof(sender_packet), 0, s.senderServerAddr, &s.senderSocklen) == -1) {
 		goto RECV;
@@ -184,7 +175,7 @@ RECV:
 		/* receiver reply with DATAACK header with seqnum received */
 		gbnhdr rec_header;
 		make_packet(&rec_header, DATAACK, s.rec_seqnum, 0, NULL, 0);
-		if (sendto(sockfd, &rec_header, sizeof(rec_header), 0, &cli, cli_len) == -1) {
+		if (sendto(sockfd, &rec_header, sizeof(rec_header), 0, s.senderServerAddr, s.senderSocklen) == -1) {
 			printf ("error sending in gbn_recv\n");
 			goto RECV;
 		}
@@ -217,28 +208,26 @@ int gbn_close(int sockfd){
 			printf("client send fin to server to close connection \n");
 			gbnhdr send_header;
 			make_packet(&send_header, FIN, 0, 0, NULL, 0);
-			if (sendto(sockfd, &send_header, sizeof(send_header), 0, &serv, serv_len) == -1) return -1;
-			if (sendto(sockfd, &send_header, sizeof(send_header), 0, &serv, serv_len) == -1) return -1;
-			if (sendto(sockfd, &send_header, sizeof(send_header), 0, &serv, serv_len) == -1) return -1;
-			if (sendto(sockfd, &send_header, sizeof(send_header), 0, &serv, serv_len) == -1) return -1;
-			if (sendto(sockfd, &send_header, sizeof(send_header), 0, &serv, serv_len) == -1) return -1;
-			if (sendto(sockfd, &send_header, sizeof(send_header), 0, &serv, serv_len) == -1) return -1;
-			if (sendto(sockfd, &send_header, sizeof(send_header), 0, &serv, serv_len) == -1) return -1;
-			if (sendto(sockfd, &send_header, sizeof(send_header), 0, &serv, serv_len) == -1) return -1;
-			if (sendto(sockfd, &send_header, sizeof(send_header), 0, &serv, serv_len) == -1) return -1;
-			if (sendto(sockfd, &send_header, sizeof(send_header), 0, &serv, serv_len) == -1) return -1;
-			if (sendto(sockfd, &send_header, sizeof(send_header), 0, &serv, serv_len) == -1) return -1;
-			if (sendto(sockfd, &send_header, sizeof(send_header), 0, &serv, serv_len) == -1) return -1;
-			if (sendto(sockfd, &send_header, sizeof(send_header), 0, &serv, serv_len) == -1) return -1;
-			if (sendto(sockfd, &send_header, sizeof(send_header), 0, &serv, serv_len) == -1) return -1;
+			if (sendto(sockfd, &send_header, sizeof(send_header), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
+			if (sendto(sockfd, &send_header, sizeof(send_header), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
+			if (sendto(sockfd, &send_header, sizeof(send_header), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
+			if (sendto(sockfd, &send_header, sizeof(send_header), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
+			if (sendto(sockfd, &send_header, sizeof(send_header), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
+			if (sendto(sockfd, &send_header, sizeof(send_header), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
+			if (sendto(sockfd, &send_header, sizeof(send_header), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
+			if (sendto(sockfd, &send_header, sizeof(send_header), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
+			if (sendto(sockfd, &send_header, sizeof(send_header), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
+			if (sendto(sockfd, &send_header, sizeof(send_header), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
+			if (sendto(sockfd, &send_header, sizeof(send_header), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
+			if (sendto(sockfd, &send_header, sizeof(send_header), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
+			if (sendto(sockfd, &send_header, sizeof(send_header), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
+			if (sendto(sockfd, &send_header, sizeof(send_header), 0, s.receiverServerAddr, s.receiverSocklen) == -1) return -1;
 			s.state = FIN_SENT;
 
 		}
 		else if (s.state == FIN_SENT) {
-			struct sockaddr tmp_sock;
-			socklen_t tmp_sock_len;
 			gbnhdr finack_packet;
-			if (maybe_recvfrom(sockfd, (char *)&finack_packet, sizeof(finack_packet), 0, &tmp_sock, &tmp_sock_len) == -1) {
+			if (maybe_recvfrom(sockfd, (char *)&finack_packet, sizeof(finack_packet), 0, s.receiverServerAddr, &s.receiverSocklen) == -1) {
 				continue;
 			}
 			if (finack_packet.type == FINACK) {
@@ -277,8 +266,6 @@ int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
 	/* Define Global State */
 	s.mode = SLOW;
 	s.senderSocklen = socklen;
-	serv_len = socklen;
-	serv = *server;
 	
 
 	gbnhdr send_header;
@@ -288,7 +275,7 @@ int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
 
 	/* send SYN and wait for SYNACK. after that, send a SYNACK back. */
 	while (attempt < MAX_ATTEMPT) {
-		if (sendto(sockfd, &send_header, sizeof(send_header), 0, &serv, socklen) == -1 ) {
+		if (sendto(sockfd, &send_header, sizeof(send_header), 0, s.receiverServerAddr, socklen) == -1 ) {
 			attempt ++;
 			printf("sender send syn failed\n");
 			continue;
@@ -299,7 +286,6 @@ int gbn_connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
 		alarm(TIMEOUT);
 		/* waiting for receiving SYNACK */
 		gbnhdr rec_header;
-		socklen_t tmp_sock_len;
 		if (maybe_recvfrom(sockfd, (char *)&rec_header, sizeof(rec_header), 0, s.receiverServerAddr, &s.receiverSocklen) == -1) {
 			printf("sender error in recvfrom syn ack\n");
 			attempt ++;
@@ -378,13 +364,6 @@ int gbn_accept(int sockfd, struct sockaddr *client, socklen_t *socklen){
 
 	int attempt = 0;
 	
-	
-	struct sockaddr t;
-	struct sockaddr* tmp_sock = &t;
-	socklen_t t_sock_len;
-	socklen_t* tmp_sock_len = &t_sock_len;
-	cli = *client;
-	cli_len = *socklen;
 	int syned = 0;
 	/* wait for SYN, then send SYNACK and wait for SYNACK. */
 	while (attempt < MAX_ATTEMPT) {
@@ -400,7 +379,6 @@ int gbn_accept(int sockfd, struct sockaddr *client, socklen_t *socklen){
 				continue;
 			}
 			syned = 1;
-			cli = *tmp_sock;
 		}
 		if (sendto(sockfd, &rec_header, sizeof(rec_header), 0, s.senderServerAddr, s.senderSocklen) == -1 ) {
 			attempt ++;
